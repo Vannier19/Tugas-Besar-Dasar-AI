@@ -1,0 +1,32 @@
+{
+  "nama": "Test Case 3",
+  "deskripsi": "Test case dengan 25 barang dan kapasitas kontainer 200",
+  "kapasitas_kontainer": 200,
+  "barang": [
+    { "id": "BRG001", "ukuran": 120 },
+    { "id": "BRG002", "ukuran": 80 },
+    { "id": "BRG003", "ukuran": 150 },
+    { "id": "BRG004", "ukuran": 60 },
+    { "id": "BRG005", "ukuran": 90 },
+    { "id": "BRG006", "ukuran": 110 },
+    { "id": "BRG007", "ukuran": 70 },
+    { "id": "BRG008", "ukuran": 130 },
+    { "id": "BRG009", "ukuran": 50 },
+    { "id": "BRG010", "ukuran": 100 },
+    { "id": "BRG011", "ukuran": 85 },
+    { "id": "BRG012", "ukuran": 95 },
+    { "id": "BRG013", "ukuran": 75 },
+    { "id": "BRG014", "ukuran": 140 },
+    { "id": "BRG015", "ukuran": 65 },
+    { "id": "BRG016", "ukuran": 105 },
+    { "id": "BRG017", "ukuran": 55 },
+    { "id": "BRG018", "ukuran": 125 },
+    { "id": "BRG019", "ukuran": 45 },
+    { "id": "BRG020", "ukuran": 115 },
+    { "id": "BRG021", "ukuran": 160 },
+    { "id": "BRG022", "ukuran": 40 },
+    { "id": "BRG023", "ukuran": 135 },
+    { "id": "BRG024", "ukuran": 180 },
+    { "id": "BRG025", "ukuran": 35 }
+  ]
+}

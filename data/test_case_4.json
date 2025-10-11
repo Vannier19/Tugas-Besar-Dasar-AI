@@ -1,0 +1,21 @@
+{
+  "nama": "Test Case 4",
+  "deskripsi": "test case dengan 14 barang dan kapasitas kontainer 100",
+  "kapasitas_kontainer": 100,
+  "barang": [
+    { "id": "BRG001", "ukuran": 50 },
+    { "id": "BRG002", "ukuran": 50 },
+    { "id": "BRG003", "ukuran": 50 },
+    { "id": "BRG004", "ukuran": 50 },
+    { "id": "BRG005", "ukuran": 30 },
+    { "id": "BRG006", "ukuran": 30 },
+    { "id": "BRG007", "ukuran": 30 },
+    { "id": "BRG008", "ukuran": 30 },
+    { "id": "BRG009", "ukuran": 20 },
+    { "id": "BRG010", "ukuran": 20 },
+    { "id": "BRG011", "ukuran": 20 },
+    { "id": "BRG012", "ukuran": 20 },
+    { "id": "BRG013", "ukuran": 20 },
+    { "id": "BRG014", "ukuran": 20 }
+  ]
+}

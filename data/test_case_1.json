@@ -1,4 +1,6 @@
 {
+  "nama": "Test Case 1",
+  "deskripsi": "Test case dengan 7 barang dan kapasitas kontainer 100",
   "kapasitas_kontainer": 100,
   "barang": [
     { "id": "BRG001", "ukuran": 40 },
