@@ -2,6 +2,7 @@ import json
 import os
 from Container import SolusiPacking
 from HillClimb import HillClimbAlgoritma
+from Visualisasi import VisualisasiHillClimbing
 
 def load_data(file_path):
     with open(file_path, 'r') as file:
@@ -13,7 +14,7 @@ def tampilkan_menu_algoritma():
     print(" "*22 + "BIN PACKING PROBLEM SOLVER")
     print("="*70)
     print("\nPilih Algoritma:")
-    print("1. Steepest Ascent Hill Climbing")
+    print("1. Steepest Ascent ")
     print("2. Simulated Annealing")
     print("3. Genetic Algorithm")
     print("0. Keluar")
@@ -21,7 +22,7 @@ def tampilkan_menu_algoritma():
 
 def tampilkan_menu_input():
     print("\n" + "="*70)
-    print(" "*20 + "HILL CLIMBING - MODE INPUT")
+    print(" "*20 + " - MODE INPUT")
     print("="*70)
     print("\nPilih mode input:")
     print("1. Gunakan Test Case yang sudah ada")
@@ -140,15 +141,15 @@ def input_data_manual():
 
 def jalankan_hill_climbing(kapasitas_kontainer, daftar_barang, max_sideways=100):
     print("\n" + "="*70)
-    print("Membuat solusi awal (First Fit Decreasing)...")
+    print("Membuat solusi awal (Random)...")
     
     solusi_awal = SolusiPacking(kapasitas_kontainer, daftar_barang)
-    solusi_awal.inisialisasi_first_fit_decreasing()
+    solusi_awal.inisialisasi_random()
     
     print(f"Solusi awal: {len(solusi_awal.state)} kontainer")
     print(f"Objective function: {solusi_awal.objective_function()}")
     
-    print("\nMenjalankan Hill Climbing...")
+    print("\nMenjalankan ...")
     algoritma = HillClimbAlgoritma(
         solusi_awal=solusi_awal,
         max_sideways_moves=max_sideways
@@ -170,7 +171,30 @@ def jalankan_hill_climbing(kapasitas_kontainer, daftar_barang, max_sideways=100)
         print(f"  Sisa: {ruang_kosong}")
         print(f"  IDs: {kontainer}")
     
+    while True:
+        print("\n" + "="*70)
+        print("Apakah Anda ingin membuat visualisasi grafik?")
+        print("1. Ya")
+        print("2. Tidak")
+        print("-"*70)
+        pilih = input("Pilih (1/2): ").strip()
+        
+        if pilih == "1":
+            try:
+                viz = VisualisasiHillClimbing()
+                viz.visualisasi_lengkap(statistik)
+            except Exception as e:
+                print(f"\nError saat membuat visualisasi: {e}")
+                print("Pastikan matplotlib dan numpy sudah terinstall.")
+                print("Install dengan: pip install matplotlib numpy")
+            break
+        elif pilih == "2":
+            break
+        else:
+            print("\nPilihan tidak valid!")
+    
     return solusi_akhir, statistik
+
 
 def algoritma_simulated_annealing():
     print("\n" + "="*70)
@@ -250,7 +274,7 @@ def algoritma_hill_climbing():
                         except ValueError:
                             print(" Input tidak valid!")
                     
-                    # Jalankan Hill Climbing
+                    # Jalankan 
                     jalankan_hill_climbing(kapasitas_kontainer, daftar_barang, max_sw)
                     
                     input("\n Tekan Enter untuk kembali ke menu...")
@@ -279,7 +303,7 @@ def algoritma_hill_climbing():
                         except ValueError:
                             print(" Input tidak valid!")
                     
-                    # Jalankan Hill Climbing
+                    # Jalankan 
                     jalankan_hill_climbing(kapasitas_kontainer, daftar_barang, max_sw)
                     
                     input("\n Tekan Enter untuk kembali ke menu...")
@@ -315,7 +339,7 @@ def main():
                 break
             
             elif pilihan == "1":
-                # Hill Climbing
+                # 
                 algoritma_hill_climbing()
             
             elif pilihan == "2":

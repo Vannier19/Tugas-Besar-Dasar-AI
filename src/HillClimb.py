@@ -4,123 +4,150 @@ import time
 class HillClimbAlgoritma:
     def __init__(self, solusi_awal, max_sideways_moves=100):
         self.solusi_awal = solusi_awal
-        self.max_sideways_moves = max_sideways_moves
+        self.max_sideways = max_sideways_moves
 
-    def _cari_tetangga_terbaik(self, solusi_sekarang):
-        tetangga_terbaik = None
-        skor_terbaik = solusi_sekarang.objective_function()
-        semua_barang = [item_id for kontainer in solusi_sekarang.state for item_id in kontainer]
+    def cari_tetangga_terbaik(self, solusi_skrg):
+        # coba semua kemungkinan neighbor
+        best_neighbor = None
+        best_score = solusi_skrg.objective_function()
+        
+        # dapetin semua barang
+        all_items = []
+        for container in solusi_skrg.state:
+            for item in container:
+                all_items.append(item)
 
-        for id_barang in semua_barang:
-            for idx_tujuan in range(len(solusi_sekarang.state) + 1):
-                tetangga_baru = copy.deepcopy(solusi_sekarang)
-                tetangga_baru.pindah_barang(id_barang, idx_tujuan)
+        # coba pindahin barang ke kontainer lain
+        for item in all_items:
+            for idx in range(len(solusi_skrg.state) + 1):
+                neighbor = copy.deepcopy(solusi_skrg)
+                neighbor.pindah_barang(item, idx)
                 
-                skor_baru = tetangga_baru.objective_function()
-                if skor_baru <= skor_terbaik:
-                    skor_terbaik = skor_baru
-                    tetangga_terbaik = tetangga_baru
+                score = neighbor.objective_function()
+                if score <= best_score:
+                    best_score = score
+                    best_neighbor = neighbor
         
-        for i in range(len(semua_barang)):
-            for j in range(i + 1, len(semua_barang)):
-                id_barang_1 = semua_barang[i]
-                id_barang_2 = semua_barang[j]
-
-                tetangga_baru = copy.deepcopy(solusi_sekarang)
-                tetangga_baru.tukar_barang(id_barang_1, id_barang_2)
-
-                skor_baru = tetangga_baru.objective_function()
-                if skor_baru <= skor_terbaik:
-                    skor_terbaik = skor_baru
-                    tetangga_terbaik = tetangga_baru
+        # coba tuker dua barang
+        for i in range(len(all_items)):
+            for j in range(i + 1, len(all_items)):
+                neighbor = copy.deepcopy(solusi_skrg)
+                neighbor.tukar_barang(all_items[i], all_items[j])
+                
+                score = neighbor.objective_function()
+                if score <= best_score:
+                    best_score = score
+                    best_neighbor = neighbor
         
-        return tetangga_terbaik, skor_terbaik
+        return best_neighbor, best_score
 
     def run(self):
-        waktu_mulai = time.time()
-        solusi_awal_copy = copy.deepcopy(self.solusi_awal)
-        skor_awal = solusi_awal_copy.objective_function()
+        start_time = time.time()
+        sol_awal = copy.deepcopy(self.solusi_awal)
+        score_awal = sol_awal.objective_function()
         
-        solusi_sekarang = copy.deepcopy(self.solusi_awal)
-        skor_sekarang = skor_awal
+        current_sol = copy.deepcopy(self.solusi_awal)
+        current_score = score_awal
         
-        history_skor = [skor_awal]
-        history_iterasi = [0]
-        sideways_count = 0
-        langkah = 0
+        hist_score = [score_awal]
+        hist_iter = [0]
+        sideways_cnt = 0
+        iteration = 0
+        
+        sideways_log = []
+        better_moves = 0
 
-        print("="*70)
-        print("HILL CLIMBING ALGORITHM")
+        print("\n" + "="*70)
+        print("HILL CLIMBING")
         print("="*70)
         print(f"\nState Awal:")
-        print(f"  Objective Function: {skor_awal}")
-        print(f"  Jumlah Kontainer: {len(solusi_awal_copy.state)}")
-        print(f"  Max Sideways Moves: {self.max_sideways_moves}")
-        print("\n" + "-"*70)
-        print(f"{'ITERASI':<10} {'AKSI':<30} {'SKOR':<15} {'SIDEWAYS':<15}")
-        print("-"*70)
+        print(f"  Objective Function: {score_awal}")
+        print(f"  Jumlah Kontainer: {len(sol_awal.state)}")
+        print(f"  Max Sideways: {self.max_sideways}")
+        print("\nSedang mencari solusi...\n")
 
         while True:
-            langkah += 1
-            tetangga_terbaik, skor_terbaik = self._cari_tetangga_terbaik(solusi_sekarang)
+            iteration += 1
+            best_neighbor, best_score = self.cari_tetangga_terbaik(current_sol)
 
-            if tetangga_terbaik is None:
-                print(f"{langkah:<10} {'Tidak ada tetangga':<30} {skor_sekarang:<15} {sideways_count}/{self.max_sideways_moves}")
-                print("\nTidak ada tetangga lebih baik. Berhenti.")
+            if best_neighbor is None:
                 break
 
-            if skor_terbaik < skor_sekarang:
-                solusi_sekarang = tetangga_terbaik
-                skor_sekarang = skor_terbaik
-                sideways_count = 0
-                history_skor.append(skor_sekarang)
-                history_iterasi.append(langkah)
-                print(f"{langkah:<10} {'Pindah (better)':<30} {skor_sekarang:<15} {sideways_count}/{self.max_sideways_moves}")
+            if best_score < current_score:
+                # dapet yang lebih baik
+                current_sol = best_neighbor
+                current_score = best_score
+                sideways_cnt = 0
+                better_moves += 1
+                hist_score.append(current_score)
+                hist_iter.append(iteration)
                 
-            elif skor_terbaik == skor_sekarang and sideways_count < self.max_sideways_moves:
-                solusi_sekarang = tetangga_terbaik
-                sideways_count += 1
-                history_skor.append(skor_sekarang)
-                history_iterasi.append(langkah)
-                print(f"{langkah:<10} {'Sideways move':<30} {skor_sekarang:<15} {sideways_count}/{self.max_sideways_moves}")
+            elif best_score == current_score and sideways_cnt < self.max_sideways:
+                # sideways move
+                current_sol = best_neighbor
+                sideways_cnt += 1
+                hist_score.append(current_score)
+                hist_iter.append(iteration)
+                sideways_log.append((iteration, current_score, sideways_cnt))
                 
             else:
-                print(f"{langkah:<10} {'Batas tercapai':<30} {skor_sekarang:<15} {sideways_count}/{self.max_sideways_moves}")
-                print("\nBatas sideways tercapai. Berhenti.")
                 break
         
-        waktu_selesai = time.time()
-        durasi = waktu_selesai - waktu_mulai
-        skor_akhir = solusi_sekarang.objective_function()
+        end_time = time.time()
+        durasi = end_time - start_time
+        score_akhir = current_sol.objective_function()
         
+        # print sideways moves
+        if len(sideways_log) > 0:
+            print("\n" + "="*70)
+            print("SIDEWAYS MOVES")
+            print("="*70)
+            print(f"{'SIDEWAYS KE':<15} {'ITERASI':<15} {'SKOR':<20}")
+            print("-"*70)
+            for iter_num, scr, sw_num in sideways_log:
+                print(f"{sw_num:<15} {iter_num:<15} {scr:<20}")
+            print("="*70)
+        
+        # print hasil akhir
         print("\n" + "="*70)
         print("HASIL AKHIR")
         print("="*70)
         print(f"\nState Akhir:")
-        print(f"  Objective Function: {skor_akhir}")
-        print(f"  Jumlah Kontainer: {len(solusi_sekarang.state)}")
+        print(f"  Objective Function: {score_akhir}")
+        print(f"  Jumlah Kontainer: {len(current_sol.state)}")
         print(f"\nStatistik:")
-        print(f"  Skor Awal: {skor_awal}")
-        print(f"  Skor Akhir: {skor_akhir}")
-        print(f"  Peningkatan: {skor_awal - skor_akhir} ({((skor_awal - skor_akhir) / skor_awal * 100):.2f}%)")
-        print(f"  Total Iterasi: {langkah}")
+        print(f"  Skor Awal: {score_awal}")
+        print(f"  Skor Akhir: {score_akhir}")
+        improvement = score_awal - score_akhir
+        pct = (improvement / score_awal * 100) if score_awal != 0 else 0
+        print(f"  Peningkatan: {improvement} ({pct:.2f}%)")
+        print(f"  Total Iterasi: {iteration}")
+        print(f"  Better Moves: {better_moves}")
+        print(f"  Sideways Moves: {len(sideways_log)}")
         print(f"  Durasi: {durasi:.4f} detik")
-        print(f"  Sideways Moves: {sideways_count}/{self.max_sideways_moves}")
+        print(f"  Sideways Terakhir: {sideways_cnt}/{self.max_sideways}")
         print("="*70 + "\n")
         
-        hasil_statistik = {
-            'solusi_awal': solusi_awal_copy,
-            'solusi_akhir': solusi_sekarang,
-            'skor_awal': skor_awal,
-            'skor_akhir': skor_akhir,
-            'peningkatan': skor_awal - skor_akhir,
-            'persentase_peningkatan': ((skor_awal - skor_akhir) / skor_awal * 100) if skor_awal != 0 else 0,
-            'total_iterasi': langkah,
+        # return hasil
+        stats = {
+            'solusi_awal': sol_awal,
+            'solusi_akhir': current_sol,
+            'skor_awal': score_awal,
+            'skor_akhir': score_akhir,
+            'peningkatan': improvement,
+            'persentase_peningkatan': pct,
+            'total_iterasi': iteration,
+            'total_better_moves': better_moves,
+            'total_sideways': len(sideways_log),
+            'sideways_terakhir': sideways_cnt,
             'durasi': durasi,
-            'sideways_count': sideways_count,
-            'max_sideways_moves': self.max_sideways_moves,
-            'history_skor': history_skor,
-            'history_iterasi': history_iterasi
+            'max_sideways_moves': self.max_sideways,
+            'history_skor': hist_score,
+            'history_iterasi': hist_iter,
+            'sideways_log': sideways_log,
+            'kapasitas_kontainer': sol_awal.kapasitas
         }
         
-        return solusi_sekarang, hasil_statistik
+        return current_sol, stats
+
+     
