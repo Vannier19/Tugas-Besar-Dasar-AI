@@ -183,3 +183,59 @@ class VisualisasiHillClimbing:
         print("SELESAI")
         print("="*70)
 
+class VisualisasiGenetic(VisualisasiHillClimbing):
+    
+    def plot_progress_ga(self, hist_generasi, hist_skor_terbaik, hist_skor_rata2, stats):
+        #Membuat plot progres: Skor Terbaik (min) vs Skor Rata-rata
+        plt.figure(figsize=(10, 6))
+        
+        plt.plot(hist_generasi, hist_skor_terbaik, 
+                 label='Skor Terbaik (Min)', color='blue', linewidth=2)
+        plt.plot(hist_generasi, hist_skor_rata2, 
+                 label='Skor Rata-rata', color='orange', linestyle='--', linewidth=2)
+        
+        plt.xlabel('Generasi')
+        plt.ylabel('Objective Function (Skor)')
+        plt.title(f'Evolusi Genetic Algorithm (Pop: {stats["pop_size"]}, Mut: {stats["mutation_rate"]})')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        
+        # info box
+        info = f"Generasi: {stats['total_generasi']}\n"
+        info += f"Populasi: {stats['pop_size']}\n"
+        info += f"Skor Awal: {stats['skor_awal']:.2f}\n"
+        info += f"Skor Akhir: {stats['skor_akhir']:.2f}\n"
+        info += f"Waktu: {stats['durasi']:.2f}s"
+        
+        plt.text(0.98, 0.98, info, transform=plt.gca().transAxes,
+                fontsize=10, verticalalignment='top', horizontalalignment='right',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        plt.tight_layout()
+        plt.show()
+
+    def visualisasi_lengkap_ga(self, stats):
+        """
+        Menjalankan semua visualisasi untuk GA.
+        """
+        sol_awal = stats['solusi_awal']
+        sol_akhir = stats['solusi_akhir']
+        hist_generasi = stats['history_generasi']
+        hist_skor_terbaik = stats['history_skor_terbaik']
+        hist_skor_rata2 = stats['history_skor_rata2']
+        
+        kapasitas = stats['kapasitas_kontainer']
+        
+        print("\n" + "="*70)
+        print("VISUALISASI GENETIC ALGORITHM")
+        print("="*70)
+        
+        # Plot 1: Grafik Progres (Max dan Rata-rata)
+        self.plot_progress_ga(hist_generasi, hist_skor_terbaik, hist_skor_rata2, stats)
+        
+        # Plot 2: Perbandingan Kontainer (Awal vs Akhir)
+        self.plot_containers(sol_awal, sol_akhir, kapasitas)
+        
+        print("\n" + "="*70)
+        print("SELESAI")
+        print("="*70)
