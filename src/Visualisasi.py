@@ -4,16 +4,14 @@ import numpy as np
 
 class VisualisasiHillClimbing:
     
-    def plot_progress(self, hist_iter, hist_skor, stats):
-        # bikin grafik progress
+    def plot_progress(self, hist_iter, hist_score, stats):
         plt.figure(figsize=(10, 6))
-        plt.plot(hist_iter, hist_skor, marker='o', linestyle='-', linewidth=2)
+        plt.plot(hist_iter, hist_score, marker='o', linestyle='-', linewidth=2)
         plt.xlabel('Iteration')
-        plt.ylabel('Penalty Value')
-        plt.title('Progress')
+        plt.ylabel('Objective Function Value')
+        plt.title('Hill Climbing Progress')
         plt.grid(True, alpha=0.3)
         
-        # info box
         info = f"Iterasi: {stats['total_iterasi']}\n"
         info += f"Awal: {stats['skor_awal']}\n"
         info += f"Akhir: {stats['skor_akhir']}\n"
@@ -23,33 +21,28 @@ class VisualisasiHillClimbing:
                 fontsize=10, verticalalignment='top',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
         
-        # atur batas y supaya grafik tidak terlihat 'mendekati 0' palsu
-        # set default agar nanti annotate tidak error
         y_min, y_max = 0, 1
         try:
-            y_min = min(hist_skor)
-            y_max = max(hist_skor)
+            y_min = min(hist_score)
+            y_max = max(hist_score)
             yrange = y_max - y_min
             if yrange <= 0:
-                # kalo semua skor sama, beri range kecil
                 y_min = y_min - 1
                 y_max = y_max + 1
             else:
-                # tambahkan margin: atas 10%, bawah 5%
                 y_min = max(0, y_min - 0.05 * yrange)
                 y_max = y_max + 0.10 * yrange
             plt.ylim(y_min, y_max)
         except Exception:
             pass
 
-        # tandai skor akhir supaya jelas berapa nilainya
-        if hist_iter and hist_skor:
-            akhir_iter = hist_iter[-1]
-            akhir_skor = hist_skor[-1]
-            plt.axhline(y=akhir_skor, color='orange', linestyle='--', linewidth=1)
-            plt.scatter([akhir_iter], [akhir_skor], color='red', zorder=5)
-            plt.annotate(f'Akhir: {akhir_skor}', xy=(akhir_iter, akhir_skor),
-                         xytext=(akhir_iter, akhir_skor + 0.03 * (y_max - y_min)),
+        if hist_iter and hist_score:
+            final_iter = hist_iter[-1]
+            final_score = hist_score[-1]
+            plt.axhline(y=final_score, color='orange', linestyle='--', linewidth=1)
+            plt.scatter([final_iter], [final_score], color='red', zorder=5)
+            plt.annotate(f'Final: {final_score}', xy=(final_iter, final_score),
+                         xytext=(final_iter, final_score + 0.03 * (y_max - y_min)),
                          arrowprops=dict(arrowstyle='->', color='gray'),
                          fontsize=9, bbox=dict(boxstyle='round', fc='wheat', alpha=0.6))
 
@@ -156,7 +149,7 @@ class VisualisasiHillClimbing:
         
         # info overload
         n_overload = sum(1 for c in containers if solusi.hitung_total_ukuran(c) > kapasitas)
-        info = f"Penalty Value: {solusi.objective_function():.1f}"
+        info = f"Value: {solusi.objective_function():.1f}"
         if n_overload > 0:
             info += f"\nOverload: {n_overload}"
         
@@ -185,31 +178,46 @@ class VisualisasiHillClimbing:
 
 class VisualisasiGenetic(VisualisasiHillClimbing):
     
-    def plot_progress_ga(self, hist_generasi, hist_skor_terbaik, hist_skor_rata2, stats):
-        #Membuat plot progres: Skor Terbaik (min) vs Skor Rata-rata
+    def plot_progress_ga(self, hist_gen, hist_best, hist_avg, stats):
         plt.figure(figsize=(10, 6))
         
-        plt.plot(hist_generasi, hist_skor_terbaik, 
-                 label='Skor Terbaik (Min)', color='blue', linewidth=2)
-        plt.plot(hist_generasi, hist_skor_rata2, 
-                 label='Skor Rata-rata', color='orange', linestyle='--', linewidth=2)
+        plt.plot(hist_gen, hist_best, 
+                 label='Best', color='blue', linewidth=2)
+        plt.plot(hist_gen, hist_avg, 
+                 label='Average', color='orange', linestyle='--', linewidth=2)
         
-        plt.xlabel('Generasi')
-        plt.ylabel('Objective Function (Skor)')
-        plt.title(f'Evolusi Genetic Algorithm (Pop: {stats["pop_size"]}, Mut: {stats["mutation_rate"]})')
+        plt.xlabel('Generation')
+        plt.ylabel('Objective Function Value')
+        plt.title(f'Genetic Algorithm Evolution (Pop: {stats["pop_size"]}, Mut: {stats["mutation_rate"]})')
         plt.grid(True, alpha=0.3)
         plt.legend()
         
-        # info box
-        info = f"Generasi: {stats['total_generasi']}\n"
-        info += f"Populasi: {stats['pop_size']}\n"
-        info += f"Skor Awal: {stats['skor_awal']:.2f}\n"
-        info += f"Skor Akhir: {stats['skor_akhir']:.2f}\n"
-        info += f"Waktu: {stats['durasi']:.2f}s"
+        info = f"Generation: {stats['total_generasi']}\n"
+        info += f"Population: {stats['pop_size']}\n"
+        info += f"Initial: {stats['skor_awal']:.2f}\n"
+        info += f"Final: {stats['skor_akhir']:.2f}\n"
+        info += f"Time: {stats['durasi']:.2f}s"
         
         plt.text(0.98, 0.98, info, transform=plt.gca().transAxes,
                 fontsize=10, verticalalignment='top', horizontalalignment='right',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        # Add final marker on best score line
+        if hist_gen and hist_best:
+            final_gen = hist_gen[-1]
+            final_best = hist_best[-1]
+            plt.axhline(y=final_best, color='lightblue', linestyle='--', linewidth=1)
+            plt.scatter([final_gen], [final_best], color='red', zorder=5, s=50)
+            
+            # Calculate y-range for annotation placement
+            y_min = min(min(hist_best), min(hist_avg))
+            y_max = max(max(hist_best), max(hist_avg))
+            yrange = y_max - y_min if y_max != y_min else 1
+            
+            plt.annotate(f'Final: {final_best:.2f}', xy=(final_gen, final_best),
+                        xytext=(final_gen, final_best + 0.03 * yrange),
+                        arrowprops=dict(arrowstyle='->', color='gray'),
+                        fontsize=9, bbox=dict(boxstyle='round', fc='wheat', alpha=0.6))
         
         plt.tight_layout()
         plt.show()
@@ -235,6 +243,157 @@ class VisualisasiGenetic(VisualisasiHillClimbing):
         
         # Plot 2: Perbandingan Kontainer (Awal vs Akhir)
         self.plot_containers(sol_awal, sol_akhir, kapasitas)
+        
+        print("\n" + "="*70)
+        print("SELESAI")
+        print("="*70)
+
+
+class VisualisasiSimulatedAnnealing(VisualisasiHillClimbing):
+    
+    def plot_progress_sa(self, hist_iter, hist_score, stats):
+        plt.figure(figsize=(10, 6))
+        plt.plot(hist_iter, hist_score, linestyle='-', linewidth=1.5, alpha=0.8)
+        plt.xlabel('Iteration')
+        plt.ylabel('Objective Function Value')
+        plt.title(f'Simulated Annealing Progress (T_init: {stats["temp_awal"]}, Rate: {stats["cooling_rate"]})')
+        plt.grid(True, alpha=0.3)
+        
+        info = f"Iteration: {stats['total_iterasi']}\n"
+        info += f"Initial: {stats['skor_awal']:.2f}\n"
+        info += f"Final: {stats['skor_akhir']:.2f}\n"
+        info += f"Time: {stats['durasi']:.2f}s"
+        
+        plt.text(0.02, 0.98, info, transform=plt.gca().transAxes,
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        # Add final marker
+        if hist_iter and hist_score:
+            final_iter = hist_iter[-1]
+            final_score = hist_score[-1]
+            plt.axhline(y=final_score, color='orange', linestyle='--', linewidth=1)
+            plt.scatter([final_iter], [final_score], color='red', zorder=5, s=50)
+            
+            # Calculate y-range for annotation placement
+            y_min = min(hist_score)
+            y_max = max(hist_score)
+            yrange = y_max - y_min if y_max != y_min else 1
+            
+            plt.annotate(f'Final: {final_score:.2f}', xy=(final_iter, final_score),
+                        xytext=(final_iter, final_score + 0.03 * yrange),
+                        arrowprops=dict(arrowstyle='->', color='gray'),
+                        fontsize=9, bbox=dict(boxstyle='round', fc='wheat', alpha=0.6))
+        
+        plt.tight_layout()
+        plt.show()
+
+    def plot_exp_delta_e(self, hist_iter, hist_exp_delta, stats):
+        plt.figure(figsize=(12, 6))
+        
+        filtered_exp = []
+        filtered_iter = []
+        max_val = 100
+        
+        for i, val in enumerate(hist_exp_delta):
+            if val != float('inf') and val <= max_val:
+                filtered_exp.append(val)
+                filtered_iter.append(hist_iter[i])
+        
+        if filtered_exp:
+            plt.plot(filtered_iter, filtered_exp, 
+                    color='darkgreen', linewidth=0.8, alpha=0.3, 
+                    zorder=1)
+            
+            step = 1
+            if len(filtered_iter) > 5000:
+                step = len(filtered_iter) // 5000
+            
+            plt.scatter(filtered_iter[::step], filtered_exp[::step], 
+                       marker='o', alpha=0.6, s=15, 
+                       color='darkgreen', edgecolors='none',
+                       label='$e^{\\Delta E/T}$', zorder=2)
+        
+        plt.xlabel('Iteration', fontsize=11)
+        plt.ylabel('$e^{\\Delta E/T}$', fontsize=12)
+        plt.title('Value of $e^{\\Delta E/T}$ vs Iteration (Simulated Annealing)', 
+                 fontsize=12, fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        
+        info = f"Total Iteration: {stats['total_iterasi']}\n"
+        info += f"T Initial: {stats['temp_awal']}\n"
+        info += f"T Final: {stats['temp_akhir']}\n"
+        info += f"Cooling Rate: {stats['cooling_rate']}"
+        
+        plt.text(0.98, 0.98, info, transform=plt.gca().transAxes,
+                fontsize=9, verticalalignment='top', horizontalalignment='right',
+                bbox=dict(boxstyle='round', facecolor='lightyellow', 
+                         edgecolor='darkorange', alpha=0.85))
+        
+        plt.legend(loc='upper left', fontsize=10)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_stuck_frequency(self, stats):
+        plt.figure(figsize=(10, 5))
+        
+        stuck_cnt = stats.get('stuck_count', 0)
+        total_iter = stats['total_iterasi']
+        
+        categories = ['Total Iteration', 'Stuck', 'Productive']
+        values = [total_iter, stuck_cnt * 50, total_iter - (stuck_cnt * 50)]
+        colors = ['skyblue', 'salmon', 'lightgreen']
+        
+        bars = plt.bar(categories, values, color=colors, alpha=0.7, edgecolor='black')
+        
+        for bar, val in zip(bars, values):
+            height = bar.get_height()
+            plt.text(bar.get_x() + bar.get_width()/2., height,
+                    f'{int(val)}',
+                    ha='center', va='bottom', fontsize=11, fontweight='bold')
+        
+        plt.ylabel('Number of Iterations', fontsize=11)
+        plt.title(f'Stuck Frequency in Local Optima (Total: {stuck_cnt} times)', 
+                 fontsize=12, fontweight='bold')
+        plt.grid(True, alpha=0.3, axis='y')
+        
+        info = f"Stuck Frequency: {stuck_cnt} times\n"
+        info += f"Total Iteration: {total_iter}\n"
+        if total_iter > 0:
+            stuck_rate = (stuck_cnt * 50 / total_iter) * 100
+            info += f"Stuck Rate: {stuck_rate:.2f}%"
+        
+        plt.text(0.98, 0.98, info, transform=plt.gca().transAxes,
+                fontsize=10, verticalalignment='top', horizontalalignment='right',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+        
+        plt.tight_layout()
+        plt.show()
+
+    def visualisasi_lengkap_sa(self, stats):
+        sol_awal = stats['solusi_awal']
+        sol_akhir = stats['solusi_akhir']
+        hist_iter = stats['history_iterasi']
+        hist_skor = stats['history_skor']
+        hist_exp_delta = stats['history_exp_delta']  # e^(ΔE/T)
+        
+        kapasitas = stats['kapasitas_kontainer']
+        
+        print("\n" + "="*70)
+        print("VISUALISASI SIMULATED ANNEALING")
+        print("="*70)
+        
+        # Plot 1: Grafik Progres Skor
+        self.plot_progress_sa(hist_iter, hist_skor, stats)
+        
+        # Plot 2: Perbandingan Kontainer (Awal vs Akhir)
+        self.plot_containers(sol_awal, sol_akhir, kapasitas)
+        
+        # Plot 3: e^(ΔE/T) vs Iterasi (SESUAI SPESIFIKASI!)
+        self.plot_exp_delta_e(hist_iter, hist_exp_delta, stats)
+        
+        # Plot 4: Frekuensi Stuck di Local Optima (SESUAI SPESIFIKASI!)
+        self.plot_stuck_frequency(stats)
         
         print("\n" + "="*70)
         print("SELESAI")

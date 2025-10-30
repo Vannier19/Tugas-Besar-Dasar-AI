@@ -5,6 +5,8 @@ from HillClimb import HillClimbAlgoritma
 from Visualisasi import VisualisasiHillClimbing
 from Genetic import GeneticAlgoritma
 from Visualisasi import VisualisasiGenetic
+from SimulatedAnnealing import SimulatedAnnealingAlgoritma
+from Visualisasi import VisualisasiSimulatedAnnealing
 
 def load_data(file_path):
     with open(file_path, 'r') as file:
@@ -169,6 +171,21 @@ def input_float(prompt, default, min_val=0.0, max_val=1.0):
         except ValueError:
             print(" Input tidak valid! Masukkan angka.")
 
+def input_float_bebas(prompt, default, min_val=0.0):
+    """Helper untuk input float tanpa batas atas."""
+    while True:
+        try:
+            val_str = input(prompt).strip()
+            if val_str == "":
+                return default
+            val_float = float(val_str)
+            if val_float < min_val:
+                print(f" Nilai harus >= {min_val}!")
+                continue
+            return val_float
+        except ValueError:
+            print(" Input tidak valid! Masukkan angka.")
+
 def jalankan_hill_climbing(kapasitas_kontainer, daftar_barang, max_sideways=100):
     print("\n" + "="*70)
     print("Membuat solusi awal (Random)...")
@@ -278,13 +295,150 @@ def jalankan_genetic_algorithm(kapasitas_kontainer, daftar_barang, pop_size, mut
     
     return solusi_akhir, statistik
 
-def algoritma_simulated_annealing():
+def jalankan_simulated_annealing(kapasitas_kontainer, daftar_barang, temp_awal, temp_akhir, cooling_rate):
     print("\n" + "="*70)
-    print(" "*20 + "SIMULATED ANNEALING")
+    print("Membuat solusi awal (Random)...")
+    
+    solusi_awal = SolusiPacking(kapasitas_kontainer, daftar_barang)
+    solusi_awal.inisialisasi_random()
+    
+    print(f"Solusi awal: {len(solusi_awal.state)} kontainer")
+    print(f"Objective function: {solusi_awal.objective_function()}")
+    
+    print("\nMenjalankan Simulated Annealing...")
+    algoritma = SimulatedAnnealingAlgoritma(
+        solusi_awal=solusi_awal,
+        temperatur_awal=temp_awal,
+        temperatur_akhir=temp_akhir,
+        cooling_rate=cooling_rate
+    )
+    
+    solusi_akhir, statistik = algoritma.run()
+    
+    print("\n" + "="*70)
+    print("DETAIL SOLUSI AKHIR (SIMULATED ANNEALING)")
     print("="*70)
-    print("\nAlgoritma belum diimplementasi.")
-    print("="*70)
-    input("\nTekan Enter...")
+    for idx, kontainer in enumerate(solusi_akhir.state):
+        total_ukuran = solusi_akhir.hitung_total_ukuran(kontainer)
+        ruang_kosong = kapasitas_kontainer - total_ukuran
+        persentase = (total_ukuran / kapasitas_kontainer) * 100
+        
+        print(f"\nKontainer {idx + 1}:")
+        print(f"  Items: {len(kontainer)}")
+        print(f"  Ukuran: {total_ukuran}/{kapasitas_kontainer} ({persentase:.1f}%)")
+        print(f"  Sisa: {ruang_kosong}")
+        print(f"  IDs: {kontainer}")
+    
+    while True:
+        print("\n" + "="*70)
+        print("Apakah Anda ingin membuat visualisasi grafik?")
+        print("1. Ya")
+        print("2. Tidak")
+        print("-"*70)
+        pilih = input("Pilih (1/2): ").strip()
+        
+        if pilih == "1":
+            try:
+                # Gunakan kelas visualisasi yang baru
+                viz = VisualisasiSimulatedAnnealing() 
+                viz.visualisasi_lengkap_sa(statistik)
+            except Exception as e:
+                print(f"\nError saat membuat visualisasi: {e}")
+                print("Pastikan matplotlib dan numpy sudah terinstall.")
+            break
+        elif pilih == "2":
+            break
+        else:
+            print("\nPilihan tidak valid!")
+    
+    return solusi_akhir, statistik
+
+def algoritma_simulated_annealing():
+    while True:
+        tampilkan_menu_input()
+        
+        try:
+            pilihan = input("\nPilih menu (0-2): ").strip()
+            
+            if pilihan == "0":
+                # Kembali ke menu algoritma
+                break
+            
+            elif pilihan == "1":
+                # Mode Test Case
+                test_cases = tampilkan_test_cases()
+                if test_cases is None:
+                    continue
+                
+                try:
+                    pilih_tc = input("\nPilih test case (0 untuk kembali): ").strip()
+                    if pilih_tc == "0":
+                        continue
+                    pilih_tc = int(pilih_tc)
+                    
+                    selected_tc = next((tc for tc in test_cases if tc['nomor'] == pilih_tc), None)
+                    
+                    if selected_tc is None:
+                        print("\n Test case tidak ditemukan!")
+                        input("Tekan Enter untuk melanjutkan...")
+                        continue
+                    
+                    print(f"\n{'='*70}")
+                    print(f"Memuat: {selected_tc['nama']}")
+                    print(f"{'='*70}")
+                    
+                    data = load_data(selected_tc['file'])
+                    kapasitas_kontainer = data['kapasitas_kontainer']
+                    daftar_barang = data['barang']
+                    
+                    # --- Tanya parameter SA ---
+                    print("\nMasukkan Parameter Simulated Annealing:")
+                    temp_A = input_float_bebas("  Temperatur Awal (default 1000): ", 1000, min_val=0.1)
+                    temp_B = input_float_bebas("  Temperatur Akhir (default 0.1): ", 0.1, min_val=0.0)
+                    rate = input_float("  Cooling Rate (0.0-1.0, default 0.995): ", 0.995)
+                    # -------------------------
+                    
+                    # Jalankan 
+                    jalankan_simulated_annealing(kapasitas_kontainer, daftar_barang, temp_A, temp_B, rate)
+                    
+                    input("\n Tekan Enter untuk kembali ke menu...")
+                    
+                except ValueError:
+                    print("\n Input tidak valid!")
+                    input("Tekan Enter untuk melanjutkan...")
+            
+            elif pilihan == "2":
+                # Mode Input Manual
+                try:
+                    kapasitas_kontainer, daftar_barang = input_data_manual()
+                    
+                    # --- Tanya parameter SA ---
+                    print("\nMasukkan Parameter Simulated Annealing:")
+                    temp_A = input_float_bebas("  Temperatur Awal (default 1000): ", 1000, min_val=0.1)
+                    temp_B = input_float_bebas("  Temperatur Akhir (default 0.1): ", 0.1, min_val=0.0)
+                    rate = input_float("  Cooling Rate (0.0-1.0, default 0.995): ", 0.995)
+                    # -------------------------
+                    
+                    # Jalankan 
+                    jalankan_simulated_annealing(kapasitas_kontainer, daftar_barang, temp_A, temp_B, rate)
+                    
+                    input("\n Tekan Enter untuk kembali ke menu...")
+                    
+                except KeyboardInterrupt:
+                    print("\n\n Input dibatalkan.")
+                    input("Tekan Enter untuk melanjutkan...")
+            
+            else:
+                print("\n Pilihan tidak valid! Pilih 0, 1, atau 2.")
+                input("Tekan Enter untuk melanjutkan...")
+        
+        except KeyboardInterrupt:
+            print("\n\n Input dibatalkan.")
+            input("Tekan Enter untuk melanjutkan...")
+            break
+        except Exception as e:
+            print(f"\n Terjadi error: {e}")
+            input("Tekan Enter untuk melanjutkan...")
 
 def algoritma_genetic():
     while True:

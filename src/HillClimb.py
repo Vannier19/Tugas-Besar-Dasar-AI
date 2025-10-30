@@ -7,17 +7,14 @@ class HillClimbAlgoritma:
         self.max_sideways = max_sideways_moves
 
     def cari_tetangga_terbaik(self, solusi_skrg):
-        # coba semua kemungkinan neighbor
         best_neighbor = None
         best_score = solusi_skrg.objective_function()
         
-        # dapetin semua barang
         all_items = []
         for container in solusi_skrg.state:
             for item in container:
                 all_items.append(item)
 
-        # coba pindahin barang ke kontainer lain
         for item in all_items:
             for idx in range(len(solusi_skrg.state) + 1):
                 neighbor = copy.deepcopy(solusi_skrg)
@@ -28,7 +25,6 @@ class HillClimbAlgoritma:
                     best_score = score
                     best_neighbor = neighbor
         
-        # coba tuker dua barang
         for i in range(len(all_items)):
             for j in range(i + 1, len(all_items)):
                 neighbor = copy.deepcopy(solusi_skrg)
@@ -46,7 +42,7 @@ class HillClimbAlgoritma:
         sol_awal = copy.deepcopy(self.solusi_awal)
         score_awal = sol_awal.objective_function()
         
-        current_sol = copy.deepcopy(self.solusi_awal)
+        current = copy.deepcopy(self.solusi_awal)
         current_score = score_awal
         
         hist_score = [score_awal]
@@ -61,21 +57,20 @@ class HillClimbAlgoritma:
         print("HILL CLIMBING")
         print("="*70)
         print(f"\nState Awal:")
-        print(f"  Objective Function: {score_awal}")
+        print(f"  Nilai Objective Function: {score_awal}")
         print(f"  Jumlah Kontainer: {len(sol_awal.state)}")
         print(f"  Max Sideways: {self.max_sideways}")
         print("\nSedang mencari solusi...\n")
 
         while True:
             iteration += 1
-            best_neighbor, best_score = self.cari_tetangga_terbaik(current_sol)
+            best_neighbor, best_score = self.cari_tetangga_terbaik(current)
 
             if best_neighbor is None:
                 break
 
             if best_score < current_score:
-                # dapet yang lebih baik
-                current_sol = best_neighbor
+                current = best_neighbor
                 current_score = best_score
                 sideways_cnt = 0
                 better_moves += 1
@@ -83,8 +78,7 @@ class HillClimbAlgoritma:
                 hist_iter.append(iteration)
                 
             elif best_score == current_score and sideways_cnt < self.max_sideways:
-                # sideways move
-                current_sol = best_neighbor
+                current = best_neighbor
                 sideways_cnt += 1
                 hist_score.append(current_score)
                 hist_iter.append(iteration)
@@ -95,29 +89,27 @@ class HillClimbAlgoritma:
         
         end_time = time.time()
         durasi = end_time - start_time
-        score_akhir = current_sol.objective_function()
+        score_akhir = current.objective_function()
         
-        # print sideways moves
         if len(sideways_log) > 0:
             print("\n" + "="*70)
             print("SIDEWAYS MOVES")
             print("="*70)
-            print(f"{'SIDEWAYS KE':<15} {'ITERASI':<15} {'SKOR':<20}")
+            print(f"{'SIDEWAYS KE':<15} {'ITERASI':<15} {'NILAI OBJECTIVE FUNCTION':<20}")
             print("-"*70)
             for iter_num, scr, sw_num in sideways_log:
                 print(f"{sw_num:<15} {iter_num:<15} {scr:<20}")
             print("="*70)
         
-        # print hasil akhir
         print("\n" + "="*70)
         print("HASIL AKHIR")
         print("="*70)
         print(f"\nState Akhir:")
-        print(f"  Objective Function: {score_akhir}")
-        print(f"  Jumlah Kontainer: {len(current_sol.state)}")
+        print(f"  Nilai Objective Function: {score_akhir}")
+        print(f"  Jumlah Kontainer: {len(current.state)}")
         print(f"\nStatistik:")
-        print(f"  Skor Awal: {score_awal}")
-        print(f"  Skor Akhir: {score_akhir}")
+        print(f"  Nilai Objective Function Awal: {score_awal}")
+        print(f"  Nilai Objective Function Akhir: {score_akhir}")
         improvement = score_awal - score_akhir
         pct = (improvement / score_awal * 100) if score_awal != 0 else 0
         print(f"  Peningkatan: {improvement} ({pct:.2f}%)")
@@ -128,10 +120,9 @@ class HillClimbAlgoritma:
         print(f"  Sideways Terakhir: {sideways_cnt}/{self.max_sideways}")
         print("="*70 + "\n")
         
-        # return hasil
         stats = {
             'solusi_awal': sol_awal,
-            'solusi_akhir': current_sol,
+            'solusi_akhir': current,
             'skor_awal': score_awal,
             'skor_akhir': score_akhir,
             'peningkatan': improvement,
@@ -148,6 +139,4 @@ class HillClimbAlgoritma:
             'kapasitas_kontainer': sol_awal.kapasitas
         }
         
-        return current_sol, stats
-
-     
+        return current, stats

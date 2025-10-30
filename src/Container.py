@@ -2,8 +2,8 @@ import random
 
 class SolusiPacking:
     # weight buat objective function
-    W_JUMLAH_KONTAINER = 10
-    W_PENALTI_OVERLOAD = 100
+    W_JUMLAH_KONTAINER = 2
+    W_PENALTI_OVERLOAD = 10
     W_KEPADATAN = 1
 
     def __init__(self, kapasitas_kontainer, daftar_barang):

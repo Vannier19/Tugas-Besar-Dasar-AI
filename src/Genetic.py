@@ -5,16 +5,15 @@ from Container import SolusiPacking
 
 class GeneticAlgoritma:
     def __init__(self, kapasitas_kontainer, daftar_barang, 
-                 pop_size=100, mutation_rate=0.1, tournament_size=5,
-                 max_generasi=500, elitism_count=1):
+                 pop_size=100, mutation_rate=0.1,
+                 max_generasi=500, elitism_count=2):
         
         self.kapasitas_kontainer = kapasitas_kontainer
         self.daftar_barang = daftar_barang
         self.pop_size = pop_size
         self.mutation_rate = mutation_rate
-        self.tournament_size = tournament_size
         self.max_generasi = max_generasi
-        self.elitism_count = elitism_count # Jumlah individu terbaik yg langsung lolos
+        self.elitism_count = elitism_count  # Jumlah individu terbaik yang dipertahankan
         
         self.populasi = []
         self.hist_skor_terbaik = []
@@ -25,140 +24,119 @@ class GeneticAlgoritma:
         self.semua_barang_id = set(b['id'] for b in self.daftar_barang)
         self.ukuran_barang = {b['id']: b['ukuran'] for b in self.daftar_barang}
 
-    def _inisialisasi_random(self):
-        """
-        Inisialisasi individu dengan cara random (sengaja dibuat buruk).
-        Sama seperti HillClimb - biar ada ruang untuk improve.
-        """
-        individu = SolusiPacking(self.kapasitas_kontainer, self.daftar_barang)
-        individu.inisialisasi_random()  # pake method dari Container.py
-        return individu
+
 
     def _inisialisasi_populasi(self):
-        """Membuat populasi awal dengan inisialisasi random."""
         self.populasi = []
+        
+        print(f"  Membuat {self.pop_size} individu dengan inisialisasi random...")
+        
         for _ in range(self.pop_size):
-            individu = self._inisialisasi_random()
+            individu = SolusiPacking(self.kapasitas_kontainer, self.daftar_barang)
+            individu.inisialisasi_random()
             self.populasi.append(individu)
 
     def _hitung_fitness(self, individu):
-        """
-        Menghitung fitness. Skor lebih rendah = fitness lebih tinggi.
-        """
         skor = individu.objective_function()
-        
-        # Balikkan skor jadi fitness (karena kita minimasi)
         if skor == 0:
-            return float('inf') # Solusi sempurna
+            return float('inf')
         return 1 / skor
 
-    def _seleksi(self):
-        """
-        Seleksi menggunakan Tournament Selection.
-        """
-        # Pilih k individu secara acak
-        turnamen = random.sample(self.populasi, self.tournament_size)
+    def _seleksi_roulette(self):
+        fitness_list = [self._hitung_fitness(ind) for ind in self.populasi]
+        total_fitness = sum(fitness_list)
         
-        # Pilih yang terbaik (fitness tertinggi / skor terendah)
-        pemenang = min(turnamen, key=lambda x: x.objective_function())
+        if total_fitness == 0 or total_fitness == float('inf'):
+            return random.choice(self.populasi)
         
-        return pemenang
+        prob_kumulatif = []
+        kumulatif = 0
+        for fitness in fitness_list:
+            kumulatif += fitness / total_fitness
+            prob_kumulatif.append(kumulatif)
+        
+        r = random.random()
+        
+        for i, prob in enumerate(prob_kumulatif):
+            if r <= prob:
+                return self.populasi[i]
+        
+        return self.populasi[-1]
 
     def _crossover(self, parent1, parent2):
-        """
-        Crossover khusus untuk Bin Packing (Order-based Crossover).
-        Ini adalah implementasi yang lebih baik daripada yang saya tunjukkan sebelumnya.
-        """
         child = SolusiPacking(self.kapasitas_kontainer, self.daftar_barang)
         
-        # 1. Ambil subset kontainer dari parent 1
         state1 = parent1.state
         start, end = sorted(random.sample(range(len(state1)), 2))
         
-        child_state_partial = [copy.deepcopy(kont) for kont in state1[start:end]]
-        barang_sudah_ada = set(item for kont in child_state_partial for item in kont)
+        child_partial = [copy.deepcopy(k) for k in state1[start:end]]
+        items_exist = set(item for k in child_partial for item in k)
         
-        # 2. Ambil barang yang BELUM ADA dari parent 2, sesuai urutan
-        barang_hilang = []
+        items_missing = []
         for kontainer in parent2.state:
             for item_id in kontainer:
-                if item_id not in barang_sudah_ada:
-                    barang_hilang.append(item_id)
+                if item_id not in items_exist:
+                    items_missing.append(item_id)
         
-        # 3. Masukkan barang hilang ke child menggunakan FFD
-        #    Kita masukkan ke kontainer parsial dari Parent 1 terlebih dahulu
+        state_final = child_partial
         
-        state_final = child_state_partial
-        
-        for item_id in barang_hilang:
-            item_ukuran = self.ukuran_barang[item_id]
-            ditempatkan = False
+        for item_id in items_missing:
+            item_size = self.ukuran_barang[item_id]
+            placed = False
             
-            # Coba masukkan ke kontainer yang ada
             for kontainer in state_final:
-                total_kontainer = child.hitung_total_ukuran(kontainer)
-                if total_kontainer + item_ukuran <= self.kapasitas_kontainer:
+                total = child.hitung_total_ukuran(kontainer)
+                if total + item_size <= self.kapasitas_kontainer:
                     kontainer.append(item_id)
-                    ditempatkan = True
+                    placed = True
                     break
             
-            # Jika tidak muat, buat kontainer baru
-            if not ditempatkan:
+            if not placed:
                 state_final.append([item_id])
                 
-        child.state = [k for k in state_final if k] # Hapus kontainer kosong
+        child.state = [k for k in state_final if k]
         
-        # Cek validasi (darurat jika ada bug crossover)
-        barang_di_child = set(item for kont in child.state for item in kont)
-        if barang_di_child != self.semua_barang_id:
-             # Jika gagal, kembalikan saja parent1 (lebih aman)
+        items_in_child = set(item for k in child.state for item in k)
+        if items_in_child != self.semua_barang_id:
              return copy.deepcopy(parent1)
 
         return child
 
 
     def _mutasi(self, individu, num_mutations=1):
-        """
-        Mutasi menggunakan 'move' yang didefinisikan di spesifikasi.
-        """
         for _ in range(num_mutations):
             if random.random() > self.mutation_rate:
-                continue # Tidak jadi mutasi
+                continue
             
-            # Pilih salah satu move (sesuai spesifikasi)
             move_type = random.choice(['pindah', 'tukar'])
             
             if move_type == 'pindah' and len(individu.state) > 0:
-                # 1. Pindah barang
                 try:
-                    idx_kont_asal = random.randint(0, len(individu.state) - 1)
-                    if not individu.state[idx_kont_asal]:
+                    idx_asal = random.randint(0, len(individu.state) - 1)
+                    if not individu.state[idx_asal]:
                         continue
                     
-                    item_pindah = random.choice(individu.state[idx_kont_asal])
+                    item = random.choice(individu.state[idx_asal])
+                    idx_tujuan = random.randint(0, len(individu.state))
                     
-                    # Pindah ke kontainer baru (idx = len) atau kontainer lama
-                    idx_kont_tujuan = random.randint(0, len(individu.state))
-                    
-                    individu.pindah_barang(item_pindah, idx_kont_tujuan)
+                    individu.pindah_barang(item, idx_tujuan)
                 except:
-                    continue # Error acak (misal: list kosong)
+                    continue
                 
             elif move_type == 'tukar' and len(individu.state) >= 2:
-                # 2. Tukar barang
                 try:
                     idx1 = random.randint(0, len(individu.state) - 1)
                     idx2 = random.randint(0, len(individu.state) - 1)
                     
                     if idx1 == idx2 or not individu.state[idx1] or not individu.state[idx2]:
-                        continue # kontainer sama atau kosong
+                        continue
                     
                     item1 = random.choice(individu.state[idx1])
                     item2 = random.choice(individu.state[idx2])
                     
                     individu.tukar_barang(item1, item2)
                 except:
-                    continue # Error acak
+                    continue
 
 
     def run(self):
@@ -171,98 +149,100 @@ class GeneticAlgoritma:
         print(f"  Jumlah Populasi: {self.pop_size}")
         print(f"  Max Generasi: {self.max_generasi}")
         print(f"  Mutation Rate: {self.mutation_rate}")
-        print(f"  Elitism: {self.elitism_count}")
-        print("\nMembuat populasi awal (FFD)...")
+        print(f"  Elitism: {self.elitism_count} individu" if self.elitism_count > 0 else "  Elitism: Tidak aktif")
+        print(f"  Seleksi: Roulette Wheel")
+        print("\nMembuat populasi awal...")
         
         self._inisialisasi_populasi()
         
-        solusi_awal = min(self.populasi, key=lambda x: x.objective_function())
-        skor_awal = solusi_awal.objective_function()
+        best_init = min(self.populasi, key=lambda x: x.objective_function())
+        score_init = best_init.objective_function()
         
-        # Simpan statistik awal
-        skor_saat_ini = [ind.objective_function() for ind in self.populasi]
-        skor_terbaik_gen = min(skor_saat_ini)
-        skor_rata2_gen = sum(skor_saat_ini) / len(skor_saat_ini)
-        self.hist_skor_terbaik.append(skor_terbaik_gen)
-        self.hist_skor_rata2.append(skor_rata2_gen)
+        scores = [ind.objective_function() for ind in self.populasi]
+        best_gen = min(scores)
+        avg_gen = sum(scores) / len(scores)
+        worst_gen = max(scores)
+        
+        self.hist_skor_terbaik.append(best_gen)
+        self.hist_skor_rata2.append(avg_gen)
         self.hist_generasi.append(0)
 
-        print(f"Skor terbaik awal: {skor_awal:.2f} | Rata-rata awal: {skor_rata2_gen:.2f}")
+        print(f"\nStatistik Populasi Awal:")
+        print(f"  Nilai Objective Function Terbaik: {best_gen:.2f}")
+        print(f"  Nilai Objective Function Rata-rata: {avg_gen:.2f}")
+        print(f"  Nilai Objective Function Terburuk: {worst_gen:.2f}")
+        print(f"  Range: {worst_gen - best_gen:.2f}")
         print("\nMemulai evolusi...\n")
         
         for gen in range(1, self.max_generasi + 1):
-            populasi_baru = []
+            new_pop = []
             
-            # Elitisme: pertahankan individu terbaik
-            sorted_pop = sorted(self.populasi, key=lambda x: x.objective_function())
-            populasi_baru.extend(copy.deepcopy(sorted_pop[:self.elitism_count]))
+            if self.elitism_count > 0:
+                sorted_pop = sorted(self.populasi, key=lambda x: x.objective_function())
+                elite = [copy.deepcopy(ind) for ind in sorted_pop[:self.elitism_count]]
+                new_pop.extend(elite)
             
-            # Loop untuk buat sisa populasi
-            while len(populasi_baru) < self.pop_size:
-                # 1. Seleksi
-                parent1 = self._seleksi()
-                parent2 = self._seleksi()
+            while len(new_pop) < self.pop_size:
+                p1 = self._seleksi_roulette()
+                p2 = self._seleksi_roulette()
                 
-                # 2. Crossover
-                child = self._crossover(parent1, parent2)
-                
-                # 3. Mutasi
+                child = self._crossover(p1, p2)
                 self._mutasi(child)
                 
-                populasi_baru.append(child)
+                new_pop.append(child)
             
-            self.populasi = populasi_baru
+            self.populasi = new_pop
             
-            # Catat statistik
-            skor_saat_ini = [ind.objective_function() for ind in self.populasi]
-            skor_terbaik_gen = min(skor_saat_ini)
-            skor_rata2_gen = sum(skor_saat_ini) / len(skor_saat_ini)
+            scores = [ind.objective_function() for ind in self.populasi]
+            best_gen = min(scores)
+            avg_gen = sum(scores) / len(scores)
             
-            self.hist_skor_terbaik.append(skor_terbaik_gen)
-            self.hist_skor_rata2.append(skor_rata2_gen)
+            self.hist_skor_terbaik.append(best_gen)
+            self.hist_skor_rata2.append(avg_gen)
             self.hist_generasi.append(gen)
             
             if gen % 100 == 0 or gen == self.max_generasi:
-                print(f"Generasi {gen}/{self.max_generasi} | Terbaik: {skor_terbaik_gen:.2f} | Rata-rata: {skor_rata2_gen:.2f}")
+                print(f"Generasi {gen}/{self.max_generasi} | Nilai Objective Function: {best_gen:.2f} | Rata-rata: {avg_gen:.2f}")
 
         end_time = time.time()
         durasi = end_time - start_time
         
-        solusi_akhir = min(self.populasi, key=lambda x: x.objective_function())
-        skor_akhir = solusi_akhir.objective_function()
+        best_final = min(self.populasi, key=lambda x: x.objective_function())
+        score_final = best_final.objective_function()
         
-        improvement = skor_awal - skor_akhir
-        pct = (improvement / skor_awal * 100) if skor_awal != 0 else 0
+        improvement = score_init - score_final
+        pct = (improvement / score_init * 100) if score_init != 0 else 0
 
         print("\n" + "="*70)
-        print("HASIL AKHIR GENETIC ALGORITHM")
+        print("HASIL AKHIR")
         print("="*70)
         print(f"\nState Akhir (Terbaik):")
-        print(f"  Objective Function: {skor_akhir}")
-        print(f"  Jumlah Kontainer: {len(solusi_akhir.state)}")
+        print(f"  Nilai Objective Function: {score_final}")
+        print(f"  Jumlah Kontainer: {len(best_final.state)}")
         print(f"\nStatistik:")
-        print(f"  Skor Awal (Terbaik): {skor_awal}")
-        print(f"  Skor Akhir (Terbaik): {skor_akhir}")
+        print(f"  Nilai Objective Function Awal: {score_init}")
+        print(f"  Nilai Objective Function Akhir: {score_final}")
         print(f"  Peningkatan: {improvement} ({pct:.2f}%)")
         print(f"  Total Generasi: {self.max_generasi}")
         print(f"  Durasi: {durasi:.4f} detik")
         print("="*70 + "\n")
         
         stats = {
-            'solusi_awal': solusi_awal,
-            'solusi_akhir': solusi_akhir,
-            'skor_awal': skor_awal,
-            'skor_akhir': skor_akhir,
+            'solusi_awal': best_init,
+            'solusi_akhir': best_final,
+            'skor_awal': score_init,
+            'skor_akhir': score_final,
             'peningkatan': improvement,
             'persentase_peningkatan': pct,
             'total_generasi': self.max_generasi,
             'durasi': durasi,
             'pop_size': self.pop_size,
             'mutation_rate': self.mutation_rate,
+            'elitism_count': self.elitism_count,
             'history_skor_terbaik': self.hist_skor_terbaik,
             'history_skor_rata2': self.hist_skor_rata2,
             'history_generasi': self.hist_generasi,
             'kapasitas_kontainer': self.kapasitas_kontainer
         }
         
-        return solusi_akhir, stats
+        return best_final, stats
