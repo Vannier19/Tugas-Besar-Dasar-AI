@@ -6,7 +6,7 @@ from Container import SolusiPacking
 class GeneticAlgoritma:
     def __init__(self, kapasitas_kontainer, daftar_barang, 
                  pop_size=100, mutation_rate=0.1,
-                 max_generasi=500, elitism_count=2):
+                 max_generasi=500, elitism_count=1):
         
         self.kapasitas_kontainer = kapasitas_kontainer
         self.daftar_barang = daftar_barang
