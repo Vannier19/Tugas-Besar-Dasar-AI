@@ -156,7 +156,7 @@ class VisualisasiHillClimbing:
         
         # info overload
         n_overload = sum(1 for c in containers if solusi.hitung_total_ukuran(c) > kapasitas)
-        info = f"Score: {solusi.objective_function():.1f}"
+        info = f"Penalty Value: {solusi.objective_function():.1f}"
         if n_overload > 0:
             info += f"\nOverload: {n_overload}"
         
