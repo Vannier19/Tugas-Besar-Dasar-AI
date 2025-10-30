@@ -138,12 +138,20 @@ class VisualisasiHillClimbing:
         ax.axhline(y=kapasitas, color='green', linestyle='-', linewidth=1.5, 
                   alpha=0.6, label=f'Kapasitas: {kapasitas}')
         
-        ax.set_xlim(-0.2, n_containers * space)
+        # set xlim yang bener: posisi terakhir + width + margin
+        ax.set_xlim(-0.3, (n_containers - 1) * space + width + 0.3)
         ax.set_ylim(0, max_h)
         ax.set_xlabel('Containers')
         ax.set_ylabel('Capacity')
         ax.set_title(f'{title}\nTotal: {n_containers} containers', fontweight='bold')
         ax.grid(True, alpha=0.2, axis='y')
+        
+        # set x-ticks di tengah setiap kontainer
+        tick_positions = [i * space + width/2 for i in range(n_containers)]
+        tick_labels = [str(i+1) for i in range(n_containers)]
+        ax.set_xticks(tick_positions)
+        ax.set_xticklabels(tick_labels, fontsize=7)
+        
         ax.legend(loc='upper right', fontsize=8)
         
         # info overload
